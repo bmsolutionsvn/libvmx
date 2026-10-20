@@ -673,6 +673,15 @@ void VMX_DecodeSlices(VMX_INSTANCE* instance, int startIndex, int count)
 					instance->ImageDataA + (i * sliceStrideA),instance->ImageStrideA,s->PixelSize);
 			}
 			break;
+		case VMX_IMAGE_Y8:
+			for (int i = startIndex; i < (startIndex + count); i++)
+			{
+				VMX_SLICE_SET* s = instance->Slices[i];
+				VMX_DecodePlane(instance, &y, s);
+				VMX_PlanarToA(y.Data + s->Offset[0], y.Stride,
+					instance->ImageData + (i * sliceStride), instance->ImageStride, s->PixelSize);
+			}
+			break;
 		case VMX_IMAGE_YUY2:
 			for (int i = startIndex; i < (startIndex + count); i++)
 			{
@@ -976,6 +985,19 @@ VMX_API VMX_ERR VMX_DecodeUYVA(VMX_INSTANCE* instance, BYTE* dst, int stride)
 	instance->ImageFormat = VMX_IMAGE_UYVA;
 	instance->ImageDataA = dst + (stride * instance->Planes[0].Size.height);
 	instance->ImageStrideA = stride >> 1;
+	VMX_DecodePlanes(instance);
+	return VMX_ERR_OK;
+}
+
+VMX_API VMX_ERR VMX_DecodeY8(VMX_INSTANCE* instance, BYTE* dst, int stride)
+{
+	if (!instance) return VMX_ERR_INVALID_INSTANCE;
+	if (!dst || stride < instance->Planes[0].Size.width) return VMX_ERR_INVALID_PARAMETERS;
+	if (instance->Format != VMX_FORMAT_PROGRESSIVE) return VMX_ERR_INVALID_CODEC_FORMAT;
+	VMX_ResetStream(instance);
+	instance->ImageData = dst;
+	instance->ImageStride = stride;
+	instance->ImageFormat = VMX_IMAGE_Y8;
 	VMX_DecodePlanes(instance);
 	return VMX_ERR_OK;
 }
@@ -1423,6 +1445,15 @@ void VMX_EncodeSlices(VMX_INSTANCE* instance, int startIndex, int count)
 				VMX_EncodePlane(instance, &v, s);
 			}
 			break;
+		case VMX_IMAGE_Y8:
+			for (int i = startIndex; i < (startIndex + count); i++)
+			{
+				VMX_SLICE_SET* s = instance->Slices[i];
+				VMX_AToPlanar(instance->ImageData + (i * sliceStride), instance->ImageStride,
+					y.Data + s->Offset[0], y.Stride, s->PixelSize);
+				VMX_EncodePlane(instance, &y, s);
+			}
+			break;
 		case VMX_IMAGE_BGRA:
 			colorTable = RGB_YUV_709;
 			if (instance->ColorSpace == VMX_COLORSPACE_BT601) colorTable = RGB_YUV_601;
@@ -1743,6 +1774,19 @@ VMX_API VMX_ERR VMX_EncodeUYVA(VMX_INSTANCE* instance, BYTE* src, int stride, in
 	instance->ImageDataA = src + (stride * instance->Planes[0].Size.height);
 	instance->ImageStrideA = stride >> 1;
 	VMX_ConfigureInterlaced(instance, interlaced);
+	VMX_EncodePlanes(instance);
+	return VMX_ERR_OK;
+}
+
+VMX_API VMX_ERR VMX_EncodeY8(VMX_INSTANCE* instance, BYTE* src, int stride)
+{
+	if (!instance) return VMX_ERR_INVALID_INSTANCE;
+	if (!src || stride < instance->Planes[0].Size.width) return VMX_ERR_INVALID_PARAMETERS;
+	VMX_ResetStream(instance);
+	instance->ImageData = src;
+	instance->ImageStride = stride;
+	instance->ImageFormat = VMX_IMAGE_Y8;
+	VMX_ConfigureInterlaced(instance, 0);
 	VMX_EncodePlanes(instance);
 	return VMX_ERR_OK;
 }

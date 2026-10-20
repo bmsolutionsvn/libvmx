@@ -31,10 +31,12 @@
 
 typedef struct ThreadTasks ThreadTasks;
 
+#ifndef VMX_API //A program linking libvmx may define it, for example as __declspec(dllimport)
 #ifdef _MSC_VER
 #define VMX_API __declspec(dllexport)
 #else
 #define VMX_API __attribute__((visibility("default")))
+#endif
 #endif
 #if defined(_M_ARM64) | defined(__arm64) | defined(__aarch64__)
 #define ARM64
@@ -111,6 +113,7 @@ typedef enum {
 	VMX_IMAGE_UYVA,
 	VMX_IMAGE_P216,
 	VMX_IMAGE_PA16,
+	VMX_IMAGE_Y8, //One 8-bit plane coded alone, such as an alpha matte. Progressive only.
 } VMX_IMAGE_FORMAT;
 
 typedef struct VMX_SLICE_DATA
@@ -489,6 +492,26 @@ VMX_API VMX_ERR VMX_EncodePA16(VMX_INSTANCE* instance, BYTE* src, int stride, in
 
 
 VMX_API VMX_ERR VMX_EncodePlanar(VMX_INSTANCE* instance, int interlaced);
+
+/**
+* Encode a single 8-bit plane, such as an alpha matte, as the luma plane alone: no chroma is coded, so this
+* takes about half the time and bytes of a 4:2:2 frame. Values pass through unchanged (0 to 255).
+* Decode the result with VMX_DecodeY8 only. Progressive only.
+*
+* @param[in] instance The instance created using VMX_Create
+* @param[in] src The plane, width bytes per row
+* @param[in] stride The stride of the plane in bytes
+*/
+VMX_API VMX_ERR VMX_EncodeY8(VMX_INSTANCE* instance, BYTE* src, int stride);
+
+/**
+* Decode a frame encoded with VMX_EncodeY8 into a single 8-bit plane.
+*
+* @param[in] instance The instance created using VMX_Create, with the frame loaded with VMX_LoadFrom
+* @param[in] dst The destination plane, width bytes per row
+* @param[in] stride The stride of the destination in bytes
+*/
+VMX_API VMX_ERR VMX_DecodeY8(VMX_INSTANCE* instance, BYTE* dst, int stride);
 
 /**
 * Load a compressed frame from a buffer.

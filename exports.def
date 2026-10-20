@@ -35,3 +35,5 @@ VMX_SetThreads
 VMX_GetEncodingParameters
 VMX_SetEncodingParameters
 VMX_CalculatePSNR
+VMX_EncodeY8
+VMX_DecodeY8
